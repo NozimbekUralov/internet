@@ -1,19 +1,43 @@
+import json, mysql.connector
 import socket
-import json
 
+connection = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+)
 
-with open("domains.txt") as input_file:
-    domains = input_file.read().split()
+cursor = connection.cursor()
 
-    result = []
-    for domain in domains:
-        ip = socket.gethostbyname(domain)
-        
-        result.append({
-            'name': domain,
-            'ip': ip
-        })
+def create_database():
+    cursor.execute("CREATE DATABASE IF NOT EXISTS Internet")
+    cursor.execute("USE Internet")
+    cursor.execute(
+        """CREATE TABLE IF NOT EXISTS domain (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        domain VARCHAR(255),
+        ip VARCHAR(255))"""
+        )
+    
+def insert_data(domain, ip):
+    cursor.execute(
+        "INSERT INTO domain (domain, ip) VALUES (%s, %s)",
+        (domain, ip),
+    )
+    connection.commit()
 
-with open("domains.json", "w") as output_file:
-    result_json = json.dumps(result, indent=4)
-    output_file.write(result_json)
+def main():
+    create_database()
+
+    with open("domains.txt", "r") as file:
+        for line in file:
+            domain = line.strip()
+            ip = socket.gethostbyname(domain)
+            insert_data(domain, ip)
+
+    cursor.close()
+    connection.close()
+
+if __name__ == "__main__":
+    main()
+
